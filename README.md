@@ -293,11 +293,12 @@ Run Python Với Lệnh Sau: <br>
 python3 <filename>.py --base http://<HOST>:<PORT> --upload /upload.php --tmp /tmp --cmd "<command-your>" --threads 300 --upload-interval 0.0 --persist
 ```
 Và đã thành công ghi webshell và thực thi lệnh: <br>
-<img width="940" height="217" alt="image" src="https://github.com/user-attachments/assets/ce7ab093-e4f0-4b5e-9568-93bda1694be5" /> <br>
-Tiếp theo cùng sử dụng lệnh **ls /** để kiểm tra flag có file ngẫu nhiên được flag ghi vào: **mfDuTetrUwGM.txt**  <br>
-<img width="947" height="482" alt="image" src="https://github.com/user-attachments/assets/17ffb795-85b7-42a7-bda7-bc74079adbc4" /> <br>
-Get FLAG thành công như hình bên dưới:<br>
-<img width="944" height="213" alt="image" src="https://github.com/user-attachments/assets/8eee2692-f904-44df-871a-a6caabbbbc9b" />
+<img width="1882" height="398" alt="image" src="https://github.com/user-attachments/assets/2ad246b3-702d-4f4d-b84f-6b16e6912392" /> <br>
+Tiếp theo cùng sử dụng lệnh **ls /** để kiểm tra flag có file ngẫu nhiên: <br>
+<img width="1897" height="859" alt="image" src="https://github.com/user-attachments/assets/f5493f72-e351-4ead-b985-3078dc815bcf" /> <br>
+Get FLAG thành công như hình bên dưới: <br>
+<img width="1903" height="361" alt="image" src="https://github.com/user-attachments/assets/5b35b095-3b1e-4ca1-94af-da73d95b0495" />
+
 
 
 
