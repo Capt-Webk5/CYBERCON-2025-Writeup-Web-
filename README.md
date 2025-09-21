@@ -158,7 +158,7 @@ Và sau khi xem xét mình thử mọi cách để bypass upload shell php nhưn
 Trong khoảng thời gian đó, file đã được ghi hoàn chỉnh vào thư mục web-public tạm thời (ví dụ /public/tmp/<4-chữ-số>.<ext>). <br>
 Vì file đã nằm trong web-public, Apache có thể thực thi file đó (ví dụ http://host/tmp/1234.php) trước khi YARA kịp quét và xóa nó. Nếu YARA chấp nhận file (không phát hiện rule), hệ thống sẽ đổi tên / di chuyển file tạm sang thư mục đích, ví dụ /public/uploads hoặc /var/www/html/uploads, làm cho webshell ghi thành công <br>
 ## Khai Thác
-Và nói như cách trên mình sẽ viết tập lệnh python để race condition upload webshell lên:
+Và nói như cách trên mình sẽ viết tập lệnh python để race condition upload webshell lên trước khi yara quét và xóa nó:
 ```py
 import requests
 import argparse
