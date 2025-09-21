@@ -154,9 +154,11 @@ RUN mkdir -p /var/www/html/tmp /var/www/html/uploads /var/app/rules \
 COPY public/ /var/www/html/
 COPY rules/  /var/app/rules/
 ```
-Và sau khi xem xét mình thử mọi cách để bypass upload shell php nhưng tệp yara sẽ quét nên khó bypass chúng và sau đó mình xem kĩ lại mình phát hiện được 1 vấn đề đoạn **usleep(800 * 1000)** trước khi chạy YARA mở ra đúng race condition cho upload webshell: file đã được ghi vào thư mục web-public /tmp/ và có thể bị Apache thực thi trong lúc tiến trình scan + xoá của YARA còn chưa kịp chạy và file tạm nó được đặt tại **/public/tmp/<4 chữ số>.<etx>** rồi mới scan nếu oke thì nó chuyển basename sang **/public/uploads** và ghi webshell vào thư mục */var/www/html/uploads* <br>
+Và sau khi xem xét mình thử mọi cách để bypass upload shell php nhưng tệp yara sẽ quét nên khó bypass chúng và sau đó mình xem kĩ lại mình phát hiện được 1 vấn đề đoạn này có thể **race condition** là **usleep(800 * 1000)** trước khi YARA bắt đầu quét file — tức là ứng dụng tạm thời dừng ~800ms trước khi kiểm tra nội dung vừa upload. <br>
+Trong khoảng thời gian đó, file đã được ghi hoàn chỉnh vào thư mục web-public tạm thời (ví dụ /public/tmp/<4-chữ-số>.<ext>). <br>
+Vì file đã nằm trong web-public, Apache có thể thực thi file đó (ví dụ http://host/tmp/1234.php) trước khi YARA kịp quét và xóa nó. Nếu YARA chấp nhận file (không phát hiện rule), hệ thống sẽ đổi tên / di chuyển file tạm sang thư mục đích, ví dụ /public/uploads hoặc /var/www/html/uploads, làm cho webshell ghi thành công <br>
 ## Khai Thác
-Và nói như cách trên mình sẽ viết tập lệnh python để quá trình tự động hóa:
+Và nói như cách trên mình sẽ viết tập lệnh python để race condition upload webshell lên:
 ```py
 import requests
 import argparse
