@@ -1,6 +1,6 @@
 # CYBERCON-2025-Writeup-Web
 <img width="527" height="177" alt="image" src="https://github.com/user-attachments/assets/148781ba-cf41-444b-8f93-83558f6ac621" /> <br>
-## Phân tích challenge
+## Phân tích challenge (Web-Safe-Upload)
 Khi vào trang chủ sẽ có chức năng upload file như hình bên dưới <br>
 <img width="927" height="500" alt="image" src="https://github.com/user-attachments/assets/a78b3386-8a2d-44ca-9794-ca10a4714e14" /> <br>
 Mình sẽ upload 1 file bất kì lên xem như nào và thường với chức năng upload này mình hay thử thay đổi tên file php rồi đưa web shell vào RCE xem nhưng không server đã loại bỏ chúng như bên dưới và cùng đi sâu vào mã nguồn xem thử. <br>
