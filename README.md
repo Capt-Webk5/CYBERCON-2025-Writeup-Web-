@@ -9,7 +9,7 @@ Sau khi xem xét mã nguồn trước tiên mình xem lá cờ nằm chỗ nào 
 ```dockerfile
 RUN echo 'cybercon{REDACTED}' > /$(mktemp -u XXXXXXXXXXXX).txt
 ```
-Mình xem qua tệp **rule** như sau nó sẽ loại bỏ tất cả rất kĩ đầu vào chúng ta với nội dung chứa <?php hay các lệnh thực thi khác rất nhiều như bên dưới và chúng ta có cùng xem tiếp file upload.php xem <br>
+Mình xem qua tệp **rule** như sau nó sẽ loại bỏ tất cả rất kĩ đầu vào chúng ta với nội dung chứa **<?php** hay các lệnh thực thi khác rất nhiều như bên dưới và cùng đi xem xét ở chức năng upload.php tệp nãy sẽ ap dụng vào nó như thế nào<br>
 ```note
 rule Suspicious_there_is_no_such_text_string_in_the_image
 {
