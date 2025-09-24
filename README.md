@@ -453,7 +453,7 @@ Payload 2: **action=w2dc_get_map_marker_info&locations_ids%5B%5D=(select+if(1=1,
 <img width="1919" height="932" alt="image" src="https://github.com/user-attachments/assets/bf63d32c-df04-4b5d-a187-64e5f03eb201" /> <br>
 Vậy đã thành công inject được lệnh thành công và tiếp theo có thể sử dụng blind_sql với sleep để trích xuất flag <br>
 ## Khai thác
-Với những điều đã nói trên mình sẽ viết tập lệnh python khai thác <br>
+Với những điều đã nói trên mình sẽ viết tập lệnh python khai thác và bảng ctf_flag mình sẽ chuyển sang dạng hex tranh dấu nháy ' payload đi qua URL decode <br>
 ```python
 
 import time, requests, string
